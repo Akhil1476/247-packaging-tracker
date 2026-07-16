@@ -126,9 +126,11 @@ document.getElementById('load-form').addEventListener('submit', async e => {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        customerName: document.getElementById('customerName').value.trim(),
-        loadDate:     document.getElementById('loadDate').value,
-        preparedBy:   document.getElementById('preparedBy').value.trim(),
+        customerName:     document.getElementById('customerName').value.trim(),
+        loadDate:         document.getElementById('loadDate').value,
+        preparedBy:       document.getElementById('preparedBy').value.trim(),
+        pickupLocation:   document.getElementById('pickupLocation').value.trim(),
+        deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
         flavors,
       }),
     });

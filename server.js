@@ -43,7 +43,7 @@ app.get('/admin',  page('admin.html'));
 // ── Submission API ────────────────────────────────────────────────────────────
 
 app.post('/api/submit', async (req, res) => {
-  const { customerName, loadDate, preparedBy, flavors } = req.body;
+  const { customerName, loadDate, preparedBy, pickupLocation, deliveryLocation, flavors } = req.body;
   if (!customerName || !loadDate || !preparedBy) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -53,6 +53,8 @@ app.post('/api/submit', async (req, res) => {
     customerName,
     loadDate,
     preparedBy,
+    pickupLocation: pickupLocation || '',
+    deliveryLocation: deliveryLocation || '',
     flavors: flavors ?? [],
   };
   try {
@@ -190,7 +192,36 @@ function generatePDF(res, s) {
        .text(value || '—', cx, y + 24, { width: colW - 24 });
   });
 
-  y += INFO_H + 20;
+  y += INFO_H;
+
+  // ── Location row (only when at least one is provided) ───────────────────────
+  if (s.pickupLocation || s.deliveryLocation) {
+    const LOC_H = 44;
+    doc.rect(M, y, CW, LOC_H).fill('#f8fafc');
+    doc.rect(M, y, CW, LOC_H).stroke('#e2e8f0').lineWidth(0.5);
+
+    const locItems = [
+      ['PICKUP LOCATION',   s.pickupLocation],
+      ['DELIVERY LOCATION', s.deliveryLocation],
+    ];
+    const locColW = CW / 2;
+
+    locItems.forEach(([label, value], i) => {
+      if (i > 0) {
+        doc.moveTo(M + i * locColW, y + 8).lineTo(M + i * locColW, y + LOC_H - 8)
+           .strokeColor('#e2e8f0').lineWidth(0.75).stroke();
+      }
+      const cx = M + i * locColW + 12;
+      doc.fillColor('#94a3b8').fontSize(6.5).font('Helvetica-Bold')
+         .text(label, cx, y + 8, { width: locColW - 24, characterSpacing: 0.8 });
+      doc.fillColor('#1e293b').fontSize(9.5).font('Helvetica-Bold')
+         .text(value || '—', cx, y + 21, { width: locColW - 24 });
+    });
+
+    y += LOC_H;
+  }
+
+  y += 20;
 
   // ── Flavor table ──────────────────────────────────────────────────────────
   doc.fillColor('#94a3b8').fontSize(6.5).font('Helvetica-Bold')
@@ -300,6 +331,8 @@ app.get('/api/export/excel', async (req, res) => {
       { header: 'Customer Name', key: 'customerName', width: 22 },
       { header: 'Load Date',     key: 'loadDate',     width: 14 },
       { header: 'Prepared By',   key: 'preparedBy',   width: 18 },
+      { header: 'Pickup Location',   key: 'pickupLocation',   width: 24 },
+      { header: 'Delivery Location', key: 'deliveryLocation', width: 24 },
       { header: 'Submitted At',  key: 'submittedAt',  width: 24 },
       { header: 'Flavor',        key: 'flavor',       width: 18 },
       { header: 'Batch #',       key: 'batchNumber',  width: 16 },
@@ -327,6 +360,7 @@ app.get('/api/export/excel', async (req, res) => {
         ws.addRow({
           customerName: s.customerName, loadDate: s.loadDate,
           preparedBy: s.preparedBy,     submittedAt,
+          pickupLocation: s.pickupLocation || '', deliveryLocation: s.deliveryLocation || '',
           flavor: '', batchNumber: '', pallets: '', cans: '', cases: '', canSpec: '', note: '',
         });
       } else {
@@ -335,6 +369,8 @@ app.get('/api/export/excel', async (req, res) => {
             customerName: s.customerName,
             loadDate:     s.loadDate,
             preparedBy:   s.preparedBy,
+            pickupLocation:   s.pickupLocation || '',
+            deliveryLocation: s.deliveryLocation || '',
             submittedAt,
             flavor:       f.flavor,
             batchNumber:  f.batchNumber,

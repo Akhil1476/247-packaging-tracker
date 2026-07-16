@@ -138,6 +138,16 @@ function buildCard(s) {
           <div class="info-label">Reference</div>
           <div class="info-value ref">#${esc(s.id)}</div>
         </div>
+        ${s.pickupLocation ? `
+        <div class="info-item">
+          <div class="info-label">Pickup Location</div>
+          <div class="info-value">${esc(s.pickupLocation)}</div>
+        </div>` : ''}
+        ${s.deliveryLocation ? `
+        <div class="info-item">
+          <div class="info-label">Delivery Location</div>
+          <div class="info-value">${esc(s.deliveryLocation)}</div>
+        </div>` : ''}
       </div>
 
       ${flavorTable}
