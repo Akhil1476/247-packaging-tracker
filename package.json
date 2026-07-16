@@ -1,0 +1,21 @@
+{
+  "name": "247-packaging-tracker",
+  "version": "1.0.0",
+  "description": "Logistics tracking app for 247 Packaging Corp",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": { "node": "20.x" },
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "mongodb": "^7.4.0",
+    "pdfkit": "^0.19.1"
+  }
+}

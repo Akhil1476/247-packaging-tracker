@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>247 Packaging Corp — Load Entry</title>
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+
+  <header class="app-header client-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </div>
+      <div class="brand">
+        <span class="company-name">247 Packaging Corp</span>
+        <h1>Load Entry</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="header-badge">Logistics Tracking</span>
+      <span class="header-date" id="header-date"></span>
+    </div>
+  </header>
+
+  <main class="card">
+    <form id="load-form" novalidate>
+
+      <p class="section-label">Load Information</p>
+      <div class="form-grid">
+        <div class="field">
+          <label for="customerName">Customer Name <span class="req">*</span></label>
+          <input type="text" id="customerName" placeholder="e.g. Acme Corp" />
+        </div>
+        <div class="field">
+          <label for="loadDate">Load Date <span class="req">*</span></label>
+          <input type="date" id="loadDate" />
+        </div>
+        <div class="field">
+          <label for="preparedBy">Prepared By <span class="req">*</span></label>
+          <input type="text" id="preparedBy" placeholder="Your name" />
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <p class="section-label">Flavors</p>
+      <div id="flavors-container"></div>
+
+      <button type="button" class="btn btn-ghost" id="btn-add-flavor">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Flavor
+      </button>
+
+      <div class="form-footer">
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-submit">Save Load</button>
+      </div>
+
+    </form>
+  </main>
+
+  <!-- Success modal -->
+  <div id="success-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <button class="modal-close" id="btn-close-modal" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div class="modal-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <h2>Load Saved Successfully</h2>
+      <p>The pick sheet PDF has been downloaded automatically.</p>
+      <div class="modal-actions">
+        <button id="btn-new-load" class="btn btn-primary">New Load</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="/js/client.js"></script>
+</body>
+</html>
