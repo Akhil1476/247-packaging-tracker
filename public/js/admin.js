@@ -120,6 +120,13 @@ function buildCard(s) {
             </svg>
             Download PDF
           </a>
+          ${s.hasBol ? `
+          <a href="/api/submissions/${esc(s.id)}/bol" target="_blank"
+             class="btn btn-sm btn-outline-white">View BOL</a>
+          <button class="btn btn-sm btn-outline-white"
+                  onclick="triggerBolUpload('${esc(s.id)}')">Replace BOL</button>` : `
+          <button class="btn btn-sm btn-outline-white"
+                  onclick="triggerBolUpload('${esc(s.id)}')">Attach BOL</button>`}
           <button class="btn btn-sm btn-danger-outline"
                   onclick="deleteSubmission('${esc(s.id)}')">Delete</button>
         </div>
@@ -152,6 +159,31 @@ function buildCard(s) {
 
       ${flavorTable}
     </div>`;
+}
+
+// ── BOL upload ─────────────────────────────────────────────────────────────────
+
+function triggerBolUpload(id) {
+  const input = document.createElement('input');
+  input.type   = 'file';
+  input.accept = 'application/pdf,.pdf';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('bol', file);
+
+    try {
+      const res = await fetch(`/api/submissions/${id}/bol`, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error();
+      showToast('BOL attached.');
+      loadData();
+    } catch {
+      showToast('Failed to attach BOL.', 'error');
+    }
+  };
+  input.click();
 }
 
 // ── Delete ─────────────────────────────────────────────────────────────────────

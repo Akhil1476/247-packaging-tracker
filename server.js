@@ -1,14 +1,27 @@
 require('dotenv').config();
 
-const express     = require('express');
-const path        = require('path');
-const PDFDocument = require('pdfkit');
-const ExcelJS     = require('exceljs');
+const express        = require('express');
+const path           = require('path');
+const PDFDocument    = require('pdfkit');
+const ExcelJS        = require('exceljs');
+const multer         = require('multer');
+const { PDFDocument: PDFLibDocument } = require('pdf-lib');
 const { MongoClient } = require('mongodb');
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF files are allowed'));
+    }
+    cb(null, true);
+  },
+});
 
 // ── Database ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +42,10 @@ async function getDb() {
 
 function submissions(db) {
   return db.collection('submissions');
+}
+
+function bols(db) {
+  return db.collection('bols');
 }
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
@@ -100,10 +117,75 @@ app.delete('/api/submissions/:id', async (req, res) => {
   try {
     const db = await getDb();
     await submissions(db).deleteOne({ id: req.params.id });
+    await bols(db).deleteOne({ submissionId: req.params.id });
     res.json({ success: true });
   } catch (err) {
     console.error('Delete error:', err);
     res.status(500).json({ error: 'Failed to delete submission' });
+  }
+});
+
+// ── BOL (Bill of Lading) upload ──────────────────────────────────────────────
+
+app.post('/api/submissions/:id/bol', (req, res) => {
+  upload.single('bol')(req, res, async err => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'No PDF file provided' });
+
+    try {
+      const db = await getDb();
+      const s  = await submissions(db).findOne({ id: req.params.id });
+      if (!s) return res.status(404).json({ error: 'Submission not found' });
+
+      await bols(db).updateOne(
+        { submissionId: req.params.id },
+        { $set: {
+            submissionId: req.params.id,
+            filename:     req.file.originalname,
+            data:         req.file.buffer,
+            uploadedAt:   new Date().toISOString(),
+          } },
+        { upsert: true }
+      );
+      await submissions(db).updateOne(
+        { id: req.params.id },
+        { $set: { hasBol: true } }
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('BOL upload error:', err);
+      res.status(500).json({ error: 'Failed to save BOL' });
+    }
+  });
+});
+
+app.get('/api/submissions/:id/bol', async (req, res) => {
+  try {
+    const db  = await getDb();
+    const bol = await bols(db).findOne({ submissionId: req.params.id });
+    if (!bol) return res.status(404).send('BOL not found');
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${bol.filename}"`);
+    res.send(bol.data.buffer ? Buffer.from(bol.data.buffer) : bol.data);
+  } catch (err) {
+    console.error('BOL fetch error:', err);
+    res.status(500).send('Failed to fetch BOL');
+  }
+});
+
+app.delete('/api/submissions/:id/bol', async (req, res) => {
+  try {
+    const db = await getDb();
+    await bols(db).deleteOne({ submissionId: req.params.id });
+    await submissions(db).updateOne(
+      { id: req.params.id },
+      { $set: { hasBol: false } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('BOL delete error:', err);
+    res.status(500).json({ error: 'Failed to delete BOL' });
   }
 });
 
@@ -118,17 +200,33 @@ app.get('/api/pick-sheet/:id/pdf', async (req, res) => {
     );
     if (!s) return res.status(404).send('Submission not found');
 
+    let pdfBytes = await generatePDFBuffer(s);
+
+    const bol = await bols(db).findOne({ submissionId: req.params.id });
+    if (bol) {
+      const bolBuffer = bol.data.buffer ? Buffer.from(bol.data.buffer) : bol.data;
+      pdfBytes = await appendBolPages(pdfBytes, bolBuffer);
+    }
+
     const safeName = s.customerName.replace(/[^a-z0-9]/gi, '-');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition',
       `attachment; filename="PickSheet-${safeName}-${s.loadDate}.pdf"`);
-
-    generatePDF(res, s);
+    res.send(Buffer.from(pdfBytes));
   } catch (err) {
     console.error('PDF error:', err);
     res.status(500).send('Failed to generate PDF');
   }
 });
+
+// Appends every page of the uploaded BOL PDF, unmodified, after the pick sheet.
+async function appendBolPages(pickSheetBytes, bolBytes) {
+  const mainDoc = await PDFLibDocument.load(pickSheetBytes);
+  const bolDoc  = await PDFLibDocument.load(bolBytes);
+  const pages   = await mainDoc.copyPages(bolDoc, bolDoc.getPageIndices());
+  pages.forEach(p => mainDoc.addPage(p));
+  return mainDoc.save();
+}
 
 function formatLoadDate(d) {
   if (!d) return '—';
@@ -138,10 +236,20 @@ function formatLoadDate(d) {
   });
 }
 
-function generatePDF(res, s) {
-  const doc = new PDFDocument({ size: 'A4', margin: 0 });
-  doc.pipe(res);
+function generatePDFBuffer(s) {
+  return new Promise((resolve, reject) => {
+    const doc    = new PDFDocument({ size: 'A4', margin: 0 });
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
 
+    drawPickSheet(doc, s);
+    doc.end();
+  });
+}
+
+function drawPickSheet(doc, s) {
   const PW = doc.page.width;
   const M  = 50;
   const CW = PW - 2 * M;
@@ -307,8 +415,6 @@ function generatePDF(res, s) {
   y += 12;
 
   doc.rect(M, y, CW, 60).stroke('#cbd5e1').lineWidth(0.75);
-
-  doc.end();
 }
 
 // ── Excel Export ──────────────────────────────────────────────────────────────

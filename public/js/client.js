@@ -106,6 +106,40 @@ function validateAndCollectFlavors() {
   return allValid ? { flavors } : { flavors: null };
 }
 
+// ── BOL upload ─────────────────────────────────────────────────────────────────
+
+const bolInput = document.getElementById('bolFile');
+
+document.getElementById('btn-bol-browse').addEventListener('click', () => bolInput.click());
+
+document.getElementById('btn-bol-clear').addEventListener('click', () => {
+  bolInput.value = '';
+  updateBolFileLabel();
+});
+
+bolInput.addEventListener('change', updateBolFileLabel);
+
+function updateBolFileLabel() {
+  const file = bolInput.files[0];
+  document.getElementById('bol-file-name').textContent = file ? file.name : 'No file selected';
+  document.getElementById('btn-bol-clear').hidden = !file;
+}
+
+async function uploadBol(id) {
+  const file = bolInput.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('bol', file);
+
+  try {
+    const res = await fetch(`/api/submissions/${id}/bol`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error();
+  } catch {
+    showToast('Load saved, but the BOL upload failed.', 'error');
+  }
+}
+
 // ── Form submit ────────────────────────────────────────────────────────────────
 
 document.getElementById('load-form').addEventListener('submit', async e => {
@@ -137,10 +171,13 @@ document.getElementById('load-form').addEventListener('submit', async e => {
     if (!res.ok) throw new Error();
     const { id } = await res.json();
 
+    await uploadBol(id);
+
     e.target.reset();
     document.getElementById('flavors-container').innerHTML = '';
     flavorCount = 0;
     document.getElementById('flavors-container').appendChild(createFlavorCard());
+    updateBolFileLabel();
 
     showSuccessModal(id);
   } catch {

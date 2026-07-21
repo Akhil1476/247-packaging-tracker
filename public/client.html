@@ -57,6 +57,20 @@
 
       <hr class="divider" />
 
+      <p class="section-label">Bill of Lading <span class="optional">(optional)</span></p>
+      <div class="field bol-field">
+        <label for="bolFile">Attach BOL PDF</label>
+        <div class="file-input-wrap">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-bol-browse">Choose PDF</button>
+          <span class="file-input-name" id="bol-file-name">No file selected</span>
+          <button type="button" class="btn-clear-file" id="btn-bol-clear" hidden aria-label="Remove file">&times;</button>
+        </div>
+        <input type="file" id="bolFile" accept="application/pdf,.pdf" hidden />
+        <small class="field-hint">Appended to the printed pick sheet exactly as uploaded.</small>
+      </div>
+
+      <hr class="divider" />
+
       <p class="section-label">Flavors</p>
       <div id="flavors-container"></div>
 

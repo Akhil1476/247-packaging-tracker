@@ -9,7 +9,8 @@ Logistics tracking app for 247 Packaging Corp. Staff submit load/flavor details 
 - **Runtime**: Node.js 20.x, CommonJS
 - **Server**: Express 5 (`server.js` — single-file backend)
 - **Database**: MongoDB (Atlas-hosted), driver `mongodb` v7, database name `tracker`, collection `submissions`
-- **PDF generation**: `pdfkit` (pick sheet export)
+- **PDF generation**: `pdfkit` (pick sheet export), `pdf-lib` (appending an uploaded BOL PDF's pages onto the pick sheet)
+- **File uploads**: `multer` (in-memory, PDF-only, 20MB max) — BOL PDFs are stored as binary in the `bols` MongoDB collection
 - **Excel generation**: `exceljs` (bulk export)
 - **Frontend**: plain static HTML/CSS/JS in `public/` — no build step, no framework
   - `public/client.html` + `public/js/client.js` — load submission form
@@ -28,8 +29,11 @@ There is no build/bundle step. `npm start` runs `node server.js` directly, which
 | GET | `/api/submissions` | List all submissions, newest first |
 | GET | `/api/submissions/:id` | Fetch one submission |
 | DELETE | `/api/submissions/:id` | Delete a submission |
-| GET | `/api/pick-sheet/:id/pdf` | Generate & download a PDF pick sheet for one submission |
+| GET | `/api/pick-sheet/:id/pdf` | Generate & download a PDF pick sheet for one submission (BOL pages appended if attached) |
 | GET | `/api/export/excel` | Export all submissions (flattened by flavor row) as `.xlsx` |
+| POST | `/api/submissions/:id/bol` | Upload/replace the BOL PDF for a submission (multipart field `bol`, PDF only, 20MB max) |
+| GET | `/api/submissions/:id/bol` | Fetch the raw BOL PDF for a submission |
+| DELETE | `/api/submissions/:id/bol` | Remove the BOL attached to a submission |
 
 ## Environment variables
 
